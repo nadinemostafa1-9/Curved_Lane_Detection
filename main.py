@@ -206,9 +206,9 @@ def cal_radius_and_offset(img,result):
 
     ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
 
-    # subsituting in the left lane line polynoial
+    # subsituting in the left lane line polynomial
     left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
-    # subsituting in the right lane line polynoial
+    # subsituting in the right lane line polynomial
     right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
 
     ploty = np.linspace(0, img_height - 1, img_height)
@@ -217,17 +217,18 @@ def cal_radius_and_offset(img,result):
     right_fit_cr = np.polyfit(ploty * ym_per_pix, right_fitx * xm_per_pix, 2)
 
     # Calculate the new radii of curvature
+    # substitute in the equation of the radius with the LEFT lane polynomial to get LEFT lane line curvature radius
     left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[1]) ** 2) ** 1.5) / np.absolute(2 * left_fit_cr[0])
-
+    # substitute in the equation of the radius with the RIGHT lane polynomial to get RIGHT lane line curvature radius
     right_curverad = ( (1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[1]) ** 2) ** 1.5) / np.absolute(2 * right_fit_cr[0])
 
     # Calculate vehicle offset from lane center, in meters     
     # Calculate vehicle center offset in pixels
     bottom_y = img.shape[0] - 1
-    bottom_x_left = left_fit[0] * (bottom_y ** 2) + left_fit[1] * bottom_y + left_fit[2]
-    bottom_x_right = right_fit[0] * (bottom_y ** 2) + right_fit[1] * bottom_y + right_fit[2]
-    vehicle_offset = img.shape[1] / 2 - (bottom_x_left + bottom_x_right) / 2
-
+    bottom_x_left = left_fit[0] * (bottom_y ** 2) + left_fit[1] * bottom_y + left_fit[2]        # sub in left lane line polynomial with bottom y
+    bottom_x_right = right_fit[0] * (bottom_y ** 2) + right_fit[1] * bottom_y + right_fit[2]    # sub in right lane line polynomial with bottom y
+    vehicle_offset = img.shape[1] / 2 - (bottom_x_left + bottom_x_right) / 2                    # average of bottom_x_left and bottom_x_right is the center of the lane
+                                                                                                # subtract the lane center from the car center to get the offset
     # Convert pixel offset to meters
     xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
     vehicle_offset *= xm_per_pix
@@ -236,7 +237,9 @@ def cal_radius_and_offset(img,result):
     font = cv2.FONT_HERSHEY_SIMPLEX
     fontColor = (0, 0, 0)
     fontSize = 1
-    cv2.putText(result, 'Lane Curvature: {:.0f} m'.format(np.mean([left_curverad, right_curverad])),
-                (500, 620), font, fontSize, fontColor, 2)
+    cv2.putText(result, 'Lane Curvature: {:.0f} m'.format(np.mean([left_curverad, right_curverad])),    # calculate the mean of the left and right lane lines curvature 
+                (500, 620), font, fontSize, fontColor, 2)                                               # radius to get the lane center curvature
+                                                                                                        # radius, and print it on the image
+    # print the car offset on the image 
     cv2.putText(result, 'Vehicle offset: {:.4f} m'.format(vehicle_offset), (500, 650), font, fontSize, fontColor, 2)
     return result
