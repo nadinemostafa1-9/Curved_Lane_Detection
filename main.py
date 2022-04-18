@@ -161,3 +161,83 @@ def fit_from_lines(left_fit, right_fit, img_w):
 
     return left_fit, right_fit
 
+def draw_lines(img, img_w, left_fit, right_fit, perspective):
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(img_w).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+    #color_warp_center = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
+
+    left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+    right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw the lane onto the warped blank image
+    #cv2.fillPoly(color_warp_center, np.int_([pts]), (0, 255, 0))
+    cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
+
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = warp(color_warp, perspective[1], perspective[0])
+    # Combine the result with the original image
+    result = cv2.addWeighted(img, 1, newwarp, 0.2, 0)
+
+    color_warp_lines = np.dstack((warp_zero, warp_zero, warp_zero))
+    cv2.polylines(color_warp_lines, np.int_([pts_right]), isClosed=False, color=(0, 255, 0), thickness=25)
+    cv2.polylines(color_warp_lines, np.int_([pts_left]), isClosed=False, color=(0, 255, 0), thickness=25)
+    newwarp_lines = warp(color_warp_lines, perspective[1], perspective[0])
+
+    result = cv2.addWeighted(result, 1, newwarp_lines, 1, 0)
+
+    return result
+def cal_radius_and_offset(img,result):
+    # ----- Radius Calculation ------ #
+
+    img_height = img.shape[0]
+    y_eval = img_height
+
+    ym_per_pix = 30 / 720.  # meters per pixel in y dimension
+    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+
+    ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
+
+    left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+    right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+
+    ploty = np.linspace(0, img_height - 1, img_height)
+    # Fit new polynomials to x,y in world space
+    left_fit_cr = np.polyfit(ploty * ym_per_pix, left_fitx * xm_per_pix, 2)
+    right_fit_cr = np.polyfit(ploty * ym_per_pix, right_fitx * xm_per_pix, 2)
+
+    # Calculate the new radii of curvature
+    left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[1]) ** 2) ** 1.5) / np.absolute(
+        2 * left_fit_cr[0])
+
+    right_curverad = ( (1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[1]) ** 2) ** 1.5) / np.absolute(
+        2 * right_fit_cr[0])
+
+    """
+        Calculate vehicle offset from lane center, in meters
+        """
+    # Calculate vehicle center offset in pixels
+    bottom_y = img.shape[0] - 1
+    bottom_x_left = left_fit[0] * (bottom_y ** 2) + left_fit[1] * bottom_y + left_fit[2]
+    bottom_x_right = right_fit[0] * (bottom_y ** 2) + right_fit[1] * bottom_y + right_fit[2]
+    vehicle_offset = img.shape[1] / 2 - (bottom_x_left + bottom_x_right) / 2
+
+    # Convert pixel offset to meters
+    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+    vehicle_offset *= xm_per_pix
+    vehicle_offset=np.abs(vehicle_offset)
+    # writing lane curvature and vehical offset on the image
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontColor = (0, 0, 0)
+    fontSize = 1
+    cv2.putText(result, 'Lane Curvature: {:.0f} m'.format(np.mean([left_curverad, right_curverad])),
+                (500, 620), font, fontSize, fontColor, 2)
+    cv2.putText(result, 'Vehicle offset: {:.4f} m'.format(vehicle_offset), (500, 650), font, fontSize, fontColor, 2)
+    return result
