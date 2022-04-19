@@ -6,11 +6,9 @@ from IPython.display import HTML
 
 
 def image_binary(img, sobel_kernel=9, mag_thresh=(10, 255), s_thresh=(170, 255)):
-
-    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-    gray = hls[:, :, 1]
-    s_channel = hls[:, :, 2]
-
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    gray = hsv[:, :, 1]
+    s_channel = hsv[:, :, 2]
 
     # Binary matrixes creation
     sobel_binary = np.zeros(shape=gray.shape, dtype=bool)
@@ -19,9 +17,9 @@ def image_binary(img, sobel_kernel=9, mag_thresh=(10, 255), s_thresh=(170, 255))
 
     # Sobel Transform
     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
-    sobely = 0 #cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
+    sobely = 0  # cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
 
-    sobel_abs = np.abs(sobelx**2 + sobely**2)
+    sobel_abs = np.abs(sobelx ** 2 + sobely ** 2)
     sobel_abs = np.uint8(255 * sobel_abs / np.max(sobel_abs))
 
     sobel_binary[(sobel_abs > mag_thresh[0]) & (sobel_abs <= mag_thresh[1])] = 1
@@ -40,7 +38,7 @@ def image_binary(img, sobel_kernel=9, mag_thresh=(10, 255), s_thresh=(170, 255))
                             (img.shape[1] / 2.5, img.shape[0] / 1.65),
                             (img.shape[1] / 1.8, img.shape[0] / 1.65),
                             (img.shape[1], img.shape[0])]],
-                          dtype=np.int)
+                          dtype=int)
 
     # Next we'll create a masked edges image using cv2.fillPoly()
     mask_img = np.zeros_like(combined_binary)
@@ -232,6 +230,19 @@ def cal_radius_and_offset(img,result):
     cv2.putText(result, 'Vehicle offset: {:.4f} m'.format(vehicle_offset), (500, 650), font, fontSize, fontColor, 2)
     return result
 
+
+def add_image(thresh, final, y):
+    # resize image ( grayscale)
+    dim = (200, 200)
+    resized_im = cv2.resize(thresh, dim, interpolation=cv2.INTER_AREA)
+    # add 3rd dimension to grayscale image
+    resized = np.reshape(resized_im, (200, 200, 1))
+    height, width, dim = resized.shape  # get dimensions
+    # resized[0] = np.delete(resized[0], 0, 0)
+    offset = np.array(
+        (y, 50))  # top-left point from which to insert the smallest image. height first, from the top of the window
+    final[offset[0]:offset[0] + height, offset[1]:offset[1] + width] = resized
+    return final
 
 
 def main():
