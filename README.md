@@ -11,9 +11,11 @@ It has 3 modes of operation:
 - image mode:     detects the lane in an image and calculates the curvature radius and car offset from the lane center
 
 To run the project, you can use the laneDetection.bat shell using command:
-laneDetection.bat [src video or image] [dst video] [mode]
+
+  laneDetection.bat [src video or image] [dst video] [mode]
   
 or equivalently you can use:
+
   python main.py [src video or image] [dst video] [mode]
   
 Please notice that all the arguments are mandatory.
