@@ -231,3 +231,20 @@ def cal_radius_and_offset(img,result):
     # print the car offset on the image 
     cv2.putText(result, 'Vehicle offset: {:.4f} m'.format(vehicle_offset), (500, 650), font, fontSize, fontColor, 2)
     return result
+
+
+
+def main():
+    input = sys.argv[1]
+    output = sys.argv[2]
+    print(input, output, len(sys.argv), sys.argv[3])
+    if len(sys.argv) > 3 and sys.argv[3] == "debug":
+        process_video(input, output, 1)
+    elif len(sys.argv) > 3 and sys.argv[3] == "no-debug":
+        process_video(input, output, 0)
+    elif len(sys.argv) > 3 and sys.argv[3] == "image":
+        input_image(input, output)
+
+
+if __name__ == "__main__":
+    main()
