@@ -204,23 +204,11 @@ def cal_radius_and_offset(img,result):
     ym_per_pix = 30 / 720.  # meters per pixel in y dimension
     xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
 
-    ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
-
-    # subsituting in the left lane line polynomial
-    left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
-    # subsituting in the right lane line polynomial
-    right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
-
-    ploty = np.linspace(0, img_height - 1, img_height)
-    # Fit new polynomials to x,y in world space
-    left_fit_cr = np.polyfit(ploty * ym_per_pix, left_fitx * xm_per_pix, 2)
-    right_fit_cr = np.polyfit(ploty * ym_per_pix, right_fitx * xm_per_pix, 2)
-
     # Calculate the new radii of curvature
     # substitute in the equation of the radius with the LEFT lane polynomial to get LEFT lane line curvature radius
-    left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[1]) ** 2) ** 1.5) / np.absolute(2 * left_fit_cr[0])
+    left_curverad = ((1 + (2 * left_fit[0] * y_eval * ym_per_pix + left_fit[1]) ** 2) ** 1.5) / np.absolute(2 * left_fit[0])
     # substitute in the equation of the radius with the RIGHT lane polynomial to get RIGHT lane line curvature radius
-    right_curverad = ( (1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[1]) ** 2) ** 1.5) / np.absolute(2 * right_fit_cr[0])
+    right_curverad = ( (1 + (2 * right_fit[0] * y_eval * ym_per_pix + right_fit[1]) ** 2) ** 1.5) / np.absolute(2 * right_fit[0])
 
     # Calculate vehicle offset from lane center, in meters     
     # Calculate vehicle center offset in pixels
