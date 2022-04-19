@@ -3,6 +3,7 @@ import cv2
 
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
+import sys
 
 
 def image_binary(img, sobel_kernel=9, mag_thresh=(10, 255), s_thresh=(170, 255)):
@@ -368,6 +369,9 @@ def input_image(inp, outp):
         mov_avg_right = mov_avg_right[0:MOV_AVG_LENGTH]
 
     final = draw_lines(img, img_w, left_fit, right_fit, perspective=[src, dst])
+
+    # calculate radius of curvature and vehicle offset and print them
+    cal_radius_and_offset(left_fit, right_fit, img, final)
 
 	# let the image open for infinite amount of time
     clp = final
