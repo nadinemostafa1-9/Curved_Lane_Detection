@@ -325,6 +325,54 @@ def process_video(input, output, flag):
             out.release()
         cv2.waitKey(1)
 
+def input_image(inp, outp):
+    clp = cv2.imread(inp)
+
+    first_run = True
+    MOV_AVG_LENGTH = 5
+    gleft_fit = gright_fit = None
+	
+    img = clp.copy()
+    blur = cv2.GaussianBlur(img, (5, 5), 0)
+
+    img_b = image_binary(blur, 15, (20, 255))
+
+    line_dst_offset = 200
+    src = [595, 452], \
+		  [685, 452], \
+		  [1110, img_b.shape[0]], \
+		  [220, img_b.shape[0]]
+
+    dst = [src[3][0] + line_dst_offset, 0], \
+		  [src[2][0] - line_dst_offset, 0], \
+		  [src[2][0] - line_dst_offset, src[2][1]], \
+		  [src[3][0] + line_dst_offset, src[3][1]]
+
+    img_w = warp(img_b, src, dst)
+
+    left_fit, right_fit = sliding_windown(img_w)
+    mov_avg_left = np.array([left_fit])
+    mov_avg_right = np.array([right_fit])
+    first_run = False
+
+    left_fit = np.array([np.mean(mov_avg_left[::-1][:, 0][0:MOV_AVG_LENGTH]),
+						 np.mean(mov_avg_left[::-1][:, 1][0:MOV_AVG_LENGTH]),
+						 np.mean(mov_avg_left[::-1][:, 2][0:MOV_AVG_LENGTH])])
+    right_fit = np.array([np.mean(mov_avg_right[::-1][:, 0][0:MOV_AVG_LENGTH]),
+						  np.mean(mov_avg_right[::-1][:, 1][0:MOV_AVG_LENGTH]),
+						  np.mean(mov_avg_right[::-1][:, 2][0:MOV_AVG_LENGTH])])
+
+    if mov_avg_left.shape[0] > 1000:
+        mov_avg_left = mov_avg_left[0:MOV_AVG_LENGTH]
+    if mov_avg_right.shape[0] > 1000:
+        mov_avg_right = mov_avg_right[0:MOV_AVG_LENGTH]
+
+    final = draw_lines(img, img_w, left_fit, right_fit, perspective=[src, dst])
+
+	# let the image open for infinite amount of time
+    clp = final
+    cv2.imshow('result', final)
+    cv2.waitKey(0)
 
 def main():
     input = sys.argv[1]
