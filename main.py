@@ -244,6 +244,87 @@ def add_image(thresh, final, y):
     final[offset[0]:offset[0] + height, offset[1]:offset[1] + width] = resized
     return final
 
+def process_video(input, output, flag):
+    clp = cv2.VideoCapture(input)
+    first_run = True
+    MOV_AVG_LENGTH = 5
+    gleft_fit = gright_fit = None
+    img_array = []
+
+    while clp.isOpened():
+        _, img = clp.read()
+
+        grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        ret, gray = cv2.threshold(grayscale, 130, 255, cv2.THRESH_BINARY_INV)
+
+        img_b = image_binary(img, 15, (18, 255))
+        blur = cv2.GaussianBlur(img_b, (7, 7), 0)
+
+
+        line_dst_offset = 200
+        src = [595, 452], \
+              [685, 452], \
+              [1110, img_b.shape[0]], \
+              [220, img_b.shape[0]]
+
+        dst = [src[3][0] + line_dst_offset, 0], \
+              [src[2][0] - line_dst_offset, 0], \
+              [src[2][0] - line_dst_offset, src[2][1]], \
+              [src[3][0] + line_dst_offset, src[3][1]]
+
+        img_w = warp(img_b, src, dst)
+
+        if first_run:
+            left_fit, right_fit = sliding_windown(img_w)
+            mov_avg_left = np.array([left_fit])
+            mov_avg_right = np.array([right_fit])
+            first_run = False
+
+        else:
+            left_fit, right_fit = fit_from_lines(left_fit, right_fit, img_w)
+
+            if abs(left_fit[1] - right_fit[1]) == 0:
+                first_run = True
+            else:
+                first_run = False
+            mov_avg_left = np.append(mov_avg_left, np.array([left_fit]), axis=0)
+            mov_avg_right = np.append(mov_avg_right, np.array([right_fit]), axis=0)
+
+        left_fit = np.array([np.mean(mov_avg_left[::-1][:, 0][0:MOV_AVG_LENGTH]),
+                             np.mean(mov_avg_left[::-1][:, 1][0:MOV_AVG_LENGTH]),
+                             np.mean(mov_avg_left[::-1][:, 2][0:MOV_AVG_LENGTH])])
+        right_fit = np.array([np.mean(mov_avg_right[::-1][:, 0][0:MOV_AVG_LENGTH]),
+                              np.mean(mov_avg_right[::-1][:, 1][0:MOV_AVG_LENGTH]),
+                              np.mean(mov_avg_right[::-1][:, 2][0:MOV_AVG_LENGTH])])
+
+        if mov_avg_left.shape[0] > 1000:
+            mov_avg_left = mov_avg_left[0:MOV_AVG_LENGTH]
+        if mov_avg_right.shape[0] > 1000:
+            mov_avg_right = mov_avg_right[0:MOV_AVG_LENGTH]
+
+        final = draw_lines(img, img_w, left_fit, right_fit, perspective=[src, dst])
+        # calculate radius of curvature and vehicle offset and print them
+        cal_radius_and_offset(left_fit, right_fit, img, final)
+        if (flag == 1):
+            add_image(gray, final, 40)
+            add_image(img_b, final, 250)
+            add_image(img_w, final, 460)
+
+
+        height, width, layers = final.shape
+        size = (width, height)
+        # add output images to array
+        img_array.append(final)
+        cv2.imshow('res', final)
+        # get number of frames in a video
+        length = int(clp.get(cv2.CAP_PROP_FRAME_COUNT))
+        if (len(img_array) == length):
+            out = cv2.VideoWriter(output + 'project.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+            for i in range(len(img_array)):
+                out.write(img_array[i])
+            out.release()
+        cv2.waitKey(1)
+
 
 def main():
     input = sys.argv[1]
