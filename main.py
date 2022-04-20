@@ -194,7 +194,7 @@ def draw_lines(img, img_w, left_fit, right_fit, perspective):
 
     return result
 
-def cal_radius_and_offset(img,result):
+def cal_radius_and_offset(left_fit, right_fit, img,result):
     # ----- Radius Calculation ------ #
 
     img_height = img.shape[0]
