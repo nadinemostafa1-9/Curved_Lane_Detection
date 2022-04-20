@@ -320,7 +320,7 @@ def process_video(input, output, flag):
         # get number of frames in a video
         length = int(clp.get(cv2.CAP_PROP_FRAME_COUNT))
         if (len(img_array) == length):
-            out = cv2.VideoWriter(output + 'project.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+            out = cv2.VideoWriter('project.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
             for i in range(len(img_array)):
                 out.write(img_array[i])
             out.release()
