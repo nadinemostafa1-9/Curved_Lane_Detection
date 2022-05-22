@@ -336,3 +336,155 @@ def get_rectangles(image, scales = [1, 1.5, 2, 2.5],  #3
     out_rectangles = [item for sublist in out_rectangles for item in sublist]
     return out_rectangles
 
+
+
+def add_heat(heatmap, bbox_list):
+    # Iterate through list of bboxes
+    for box in bbox_list:
+        # Add += 1 for all pixels inside each bbox
+        # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+        heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+    # Return updated heatmap
+    return heatmap
+
+
+def apply_threshold(heatmap, threshold):
+    # Zero out pixels below the threshold
+    heatmap[heatmap <= threshold] = 0
+    # Return thresholded map
+    return heatmap
+
+
+def draw_labeled_bboxes(img, labels):
+    # Iterate through all detected cars
+    img_copy = np.copy(img)
+    result_rectangles = []
+    for car_number in range(1, labels[1] + 1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        area = (bbox[1][1] - bbox[0][1]) * (bbox[1][0] - bbox[0][0])
+        if area > 40 * 40:
+            result_rectangles.append(bbox)
+            # Draw the box on the image
+            cv2.rectangle(img_copy, bbox[0], bbox[1], (0, 255, 0), 6)
+    # Return the image
+    return result_rectangles, img_copy
+
+
+def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
+    # Make a copy of the image
+    imcopy = np.copy(img)
+    random_color = False
+    # Iterate through the bounding boxes
+    for bbox in bboxes:
+        if color == 'random' or random_color:
+            color = (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
+            random_color = True
+        # Draw a rectangle given bbox coordinates
+        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+    # Return the image copy with boxes drawn
+    return imcopy
+
+
+def visualize_bboxes(image, scales=[1, 1.5, 2, 2.5, 3],
+                     ystarts=[400, 400, 450, 450, 460],
+                     ystops=[528, 550, 620, 650, 700]):
+    out_rectangles = []
+    for scale, ystart, ystop in zip(scales, ystarts, ystops):
+        rectangles = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,
+                                vis_bboxes=True)
+        if len(rectangles) > 0:
+            out_rectangles.append(rectangles)
+    out_rectangles = [item for sublist in out_rectangles for item in sublist]
+
+    plt.figure(figsize=(20, 10))
+    cv2.imshow('out',draw_boxes(image, out_rectangles, color='random', thick=3))
+    cv2.waitKey(0)
+
+
+#Steps for running the models of the test images
+#a. Do a sliding window search with different window scales tp detect bounding boxes
+#b. Merge the bounding boxes using heat maps and thresholding
+#c. Display bounding boxes on the images
+
+#visualize_bboxes(test_images[0])
+def input_image(input):
+    result_images = []
+    heatmap_images = []
+    result_img_all_boxes = []
+
+    rectangles = get_rectangles(input)
+    # Do a sliding window search with different window scales tp detect bounding boxes
+    result_img_all_boxes.append(draw_boxes(input, rectangles, color='random', thick=3))
+    visualize_images(result_img_all_boxes, 2, "test")
+    heatmap_image = np.zeros_like(input[:, :, 0])
+    heatmap_image = add_heat(heatmap_image, rectangles)
+    heatmap_images.append(heatmap_image)
+    #Merge the bounding boxes using heat maps and thresholding
+    visualize_images(heatmap_images, 2, "Heatmap", cmap="hot")
+    heatmap_image = apply_threshold(heatmap_image, 2)
+    labels = label(heatmap_image)
+    rectangles, result_image = draw_labeled_bboxes(input, labels)
+    result_images.append(result_image)
+    #final output
+    visualize_images(result_images, 2, "test")
+
+
+
+class DetectionInfo():
+    def __init__(self):
+        self.max_size = 10
+        self.old_bboxes = queue.Queue(self.max_size)
+        self.heatmap = np.zeros_like(test_images[0][:, :, 0])
+
+    def get_heatmap(self):
+        self.heatmap = np.zeros_like(test_images[0][:, :, 0])
+        if self.old_bboxes.qsize() == self.max_size:
+            for bboxes in list(self.old_bboxes.queue):
+                self.heatmap = add_heat(self.heatmap, bboxes)
+                # self.heatmap = apply_threshold(self.heatmap, 2)
+            self.heatmap = apply_threshold(self.heatmap, 20)
+        return self.heatmap
+
+    def get_labels(self):
+        return label(self.get_heatmap())
+
+    def add_bboxes(self, bboxes):
+        if len(bboxes) < 1:
+            return
+        if self.old_bboxes.qsize() == self.max_size:
+            self.old_bboxes.get()
+        self.old_bboxes.put(bboxes)
+
+
+def find_vehicles(image):
+    bboxes = get_rectangles(image)
+    detection_info.add_bboxes(bboxes)
+    labels = detection_info.get_labels()
+    if len(labels) == 0:
+        result_image = image
+    else:
+        bboxes, result_image = draw_labeled_bboxes(image, labels)
+
+    return result_image
+
+
+detection_info = DetectionInfo()
+detection_info.old_heatmap = np.zeros_like(test_images[0][:, :, 0])
+
+def process_video(video):
+ project_video_path = video
+ project_video_output = 'output.mp4'
+
+ #project_video = VideoFileClip(project_video_path)
+ project_video = VideoFileClip(project_video_path).subclip(0,30)
+ white_clip = project_video.fl_image(find_vehicles)  # NOTE: this function expects color images!!
+
+ white_clip.write_videofile(project_video_output, audio=False)
+
