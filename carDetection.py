@@ -167,17 +167,15 @@ def train_svc():
  pix_per_cell = 8
  cell_per_block = 2
  hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
- spatial_size=(32, 32)
- hist_bins=32
 
  t=time.time()
 
  car_features = extract_features(cars, cspace=colorspace, orient=orient,
                         pix_per_cell=pix_per_cell, cell_per_block=cell_per_block,
-                        hog_channel=hog_channel, hist_bins=hist_bins)
+                        hog_channel=hog_channel)
  notcar_features = extract_features(notcars, cspace=colorspace, orient=orient,
                         pix_per_cell=pix_per_cell, cell_per_block=cell_per_block,
-                        hog_channel=hog_channel, hist_bins=hist_bins)
+                        hog_channel=hog_channel)
  t2 = time.time()
  print(round(t2-t, 2), 'Seconds to extract HOG features...')
 # Create an array stack of feature vectors
@@ -222,14 +220,13 @@ def train_svc():
                 'scaler': X_scaler,
                 'orient': orient,
                 'pix_per_cell': pix_per_cell,
-                'cell_per_block': cell_per_block,
-                'spatial_size': spatial_size,
-                'hist_bins': hist_bins
+                'cell_per_block': cell_per_block
 
             },
             pfile, pickle.HIGHEST_PROTOCOL)
 
  print('Data saved in pickle file')
+
 
 ####Load the training model from pickle file
 dist_pickle = pickle.load( open("svc_pickle.p", "rb" ) )
@@ -258,7 +255,7 @@ for image in images:
         test_images.append(mpimg.imread(image))
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
-def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins,
+def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,
               vis_bboxes=False):
     draw_img = np.copy(img)
     xstart = int(img.shape[1] / 5)
@@ -326,3 +323,16 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
                                    (xbox_left + win_draw + xstart, ytop_draw + win_draw + ystart)))
 
     return rectangles
+
+
+def get_rectangles(image, scales = [1, 1.5, 2, 2.5],  #3
+                   ystarts = [400, 400, 450, 450],   #460
+                   ystops = [528, 550, 620, 650]):   #700
+    out_rectangles = []
+    for scale, ystart, ystop in zip(scales, ystarts, ystops):
+        rectangles = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block)
+        if len(rectangles) > 0:
+            out_rectangles.append(rectangles)
+    out_rectangles = [item for sublist in out_rectangles for item in sublist]
+    return out_rectangles
+
