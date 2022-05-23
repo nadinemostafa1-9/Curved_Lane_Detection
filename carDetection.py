@@ -239,6 +239,22 @@ pix_per_cell = dist_pickle["pix_per_cell"]
 cell_per_block = dist_pickle["cell_per_block"]
 
 
+#Read cars and not-cars images
+
+#test images folder
+test_images_dir = 'test_images/'
+#Read cars and not-cars images
+
+
+# images are divided up into vehicles and non-vehicles
+test_images = []
+
+images = glob.glob(test_images_dir + '*.jpg')
+
+for image in images:
+        test_images.append(mpimg.imread(image))
+
+
 
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
