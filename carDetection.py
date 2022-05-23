@@ -415,7 +415,8 @@ def visualize_bboxes(image, scales=[1, 1.5, 2, 2.5, 3],
 #c. Display bounding boxes on the images
 
 #visualize_bboxes(test_images[0])
-def input_image(input):
+def input_image(inp,select):
+    input= mpimg.imread(inp)
     result_images = []
     heatmap_images = []
     result_img_all_boxes = []
@@ -423,12 +424,14 @@ def input_image(input):
     rectangles = get_rectangles(input)
     # Do a sliding window search with different window scales tp detect bounding boxes
     result_img_all_boxes.append(draw_boxes(input, rectangles, color='random', thick=3))
-    visualize_images(result_img_all_boxes, 2, "test")
+    if select == 1:
+     visualize_images(result_img_all_boxes, 2, "test")
     heatmap_image = np.zeros_like(input[:, :, 0])
     heatmap_image = add_heat(heatmap_image, rectangles)
     heatmap_images.append(heatmap_image)
     #Merge the bounding boxes using heat maps and thresholding
-    visualize_images(heatmap_images, 2, "Heatmap", cmap="hot")
+    if select == 1:
+     visualize_images(heatmap_images, 2, "Heatmap", cmap="hot")
     heatmap_image = apply_threshold(heatmap_image, 2)
     labels = label(heatmap_image)
     rectangles, result_image = draw_labeled_bboxes(input, labels)
@@ -478,14 +481,3 @@ def find_vehicles(image):
 
 detection_info = DetectionInfo()
 detection_info.old_heatmap = np.zeros_like(test_images[0][:, :, 0])
-
-def process_video(video):
- project_video_path = video
- project_video_output = 'output.mp4'
-
- #project_video = VideoFileClip(project_video_path)
- project_video = VideoFileClip(project_video_path).subclip(0,30)
- white_clip = project_video.fl_image(find_vehicles)  # NOTE: this function expects color images!!
-
- white_clip.write_videofile(project_video_output, audio=False)
-
