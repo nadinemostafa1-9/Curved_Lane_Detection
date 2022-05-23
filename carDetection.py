@@ -506,5 +506,6 @@ def main():
         input_image(input, 0)
 
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     main()
