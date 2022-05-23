@@ -1,5 +1,5 @@
 @echo off
 
-python main.py %1 %2 %3
+python carDetection.py %1 %2 %3
 
 pause
