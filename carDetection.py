@@ -491,3 +491,18 @@ def process_video(video,out):
  white_clip = project_video.fl_image(find_vehicles)  # NOTE: this function expects color images!!
 
  white_clip.write_videofile(project_video_output, audio=False)
+
+def main():
+    input = sys.argv[1]
+    output = sys.argv[2]
+    print(input, output, len(sys.argv), sys.argv[3])
+    if len(sys.argv) > 3 and sys.argv[3] == "video":
+        process_video(input, output)
+    elif len(sys.argv) > 3 and sys.argv[3] == "debug":
+        input_image(input, 1)
+    elif len(sys.argv) > 3 and sys.argv[3] == "no-debug":
+        input_image(input, 0)
+
+
+if _name_ == "_main_":
+    main()
