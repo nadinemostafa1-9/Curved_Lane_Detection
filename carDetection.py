@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import glob
+import sys
 import time
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
