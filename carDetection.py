@@ -481,3 +481,13 @@ def find_vehicles(image):
 
 detection_info = DetectionInfo()
 detection_info.old_heatmap = np.zeros_like(test_images[0][:, :, 0])
+
+def process_video(video,out):
+ project_video_path = video
+ project_video_output = out
+
+ #project_video = VideoFileClip(project_video_path)
+ project_video = VideoFileClip(project_video_path).subclip(0,30)
+ white_clip = project_video.fl_image(find_vehicles)  # NOTE: this function expects color images!!
+
+ white_clip.write_videofile(project_video_output, audio=False)
